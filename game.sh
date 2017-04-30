@@ -23,7 +23,14 @@ generate-bricks() {
   done
 }
 
-loop() {
+game-mode() {
+  tput clear
+  generate-bricks
+  sound start
+  LOOP=game-loop
+}
+
+game-loop() {
   erase $paddleX $paddleY $paddleSize
   erase $ballX $ballY $ballSize
 
@@ -119,6 +126,4 @@ loop() {
 
   echo -en "${framebuffer}"
   framebuffer=
-
-  (sleep $DELAY && kill -ALRM $$) &
 }

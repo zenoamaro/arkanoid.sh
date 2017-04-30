@@ -1,20 +1,20 @@
 #!/usr/bin/env bash
 source config.sh
 source util.sh
+source title.sh
 source game.sh
 
 PLATFORM=$(uname -s)
 TTY=
 KEY=
+LOOP=
 
 setup() {
   TTY=$(stty -g)
   stty -echo
   tput civis
-  tput clear
   trap teardown EXIT INT
   trap loop ALRM
-  generate-bricks
 }
 
 teardown() {
@@ -28,22 +28,16 @@ teardown() {
   exit
 }
 
-input() {
-  read -rs -n1 KEY || true
+loop() {
+  $LOOP
+  (sleep $DELAY && kill -ALRM $$) &
 }
 
 setup
-
-sound title 
-soundThread=$!
-cat gfx/title.ans
-read -n1
-kill-thread $soundThread
-
-tput clear
-sound start
+title-mode
 loop
 
 while :; do
-  input
+  read -rs -n1 KEY || true
+  if [[ -z $KEY ]]; then KEY=' '; fi
 done
