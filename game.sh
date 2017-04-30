@@ -6,22 +6,6 @@ ballSize=1 ballX=$((screenW/2-1)) ballY=$((screenH-1))
 paddleSize=15 paddleX=$((screenW/2-paddleSize/2)) paddleY=$((screenH-1)) 
 ballSpeedX=1 ballSpeedY=-1 paddleSpeed=0 maxPaddleSpeed=4 paddleSafeArea=4
 brickSize=${#BRICK} bricks=()
-framebuffer=
-
-generate-bricks() {
-  local lines=5
-  local count=$((screenW / brickSize - 1))
-
-  for y in $(seq 1 $((lines))); do
-    for x in $(seq 0 $count); do
-      local color=$(((RANDOM % 8) + 1))
-      local x=$((x * brickSize))
-      local brick="$x $y $color $BRICK"
-      bricks+=("$brick")
-      draw $brick
-    done
-  done
-}
 
 game-mode() {
   tput clear
@@ -124,6 +108,20 @@ game-loop() {
   draw $paddleX $paddleY 6 $PADDLE
   draw $ballX $ballY 5 $BALL
 
-  echo -en "${framebuffer}"
-  framebuffer=
+  render
+}
+
+generate-bricks() {
+  local lines=5
+  local count=$((screenW / brickSize - 1))
+
+  for y in $(seq 1 $((lines))); do
+    for x in $(seq 0 $count); do
+      local color=$(((RANDOM % 8) + 1))
+      local x=$((x * brickSize))
+      local brick="$x $y $color $BRICK"
+      bricks+=("$brick")
+      draw $brick
+    done
+  done
 }
