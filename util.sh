@@ -1,5 +1,24 @@
 #!/usr/bin/env bash
 
+threads=()
+
+start-thread() {
+  "$@" &
+  local pid=$!
+  threads+=("$pid")
+}
+
+kill-thread() {
+  local pid=$1
+  (kill -PIPE "$thread" || true) > /dev/null 2>&1
+}
+
+terminate-all-threads() {
+  for thread in "${threads[@]}"; do
+    kill-thread "$thread"
+  done
+}
+
 draw() {
   local x=$1
   local y=$2
@@ -22,10 +41,10 @@ repeat() {
 }
 
 sound() {
-  local sound=sound/$1.wav
+  local sound=sound/$1.mp3
   case $PLATFORM in
-    Darwin) afplay "$sound" &;;
-    Linux) paplay "$sound" &;;
+    Darwin) start-thread afplay "$sound";;
+    Linux) start-thread paplay "$sound";;
     *) echo -en '\a';;
   esac
 }

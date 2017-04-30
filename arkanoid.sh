@@ -7,30 +7,24 @@ PLATFORM=$(uname -s)
 TTY=
 KEY=
 
-score=0
-screenW=$(tput cols) screenH=$(tput lines) screenC=$((screenW*screenH))
-ballSize=1 ballX=$((screenW/2-1)) ballY=$((screenH-1))
-paddleSize=15 paddleX=$((screenW/2-paddleSize/2)) paddleY=$((screenH-1)) 
-ballSpeedX=1 ballSpeedY=-1 paddleSpeed=0 maxPaddleSpeed=4 paddleSafeArea=4
-brickSize=${#BRICK} bricks=()
-framebuffer=
-
 setup() {
   TTY=$(stty -g)
-  stty raw -echo
+  stty -echo
   tput civis
   tput clear
-  trap teardown EXIT
+  trap teardown EXIT INT
   trap loop ALRM
   generate-bricks
 }
 
 teardown() {
+  terminate-all-threads
   trap exit ALRM
   stty "$TTY"
   tput cvvis
   tput sgr0
-  sleep $DELAY
+  tput clear
+  sleep "$DELAY"
   exit
 }
 
@@ -39,6 +33,14 @@ input() {
 }
 
 setup
+
+sound title 
+soundThread=$!
+cat gfx/title.ans
+read -n1
+kill-thread $soundThread
+
+tput clear
 sound start
 loop
 
