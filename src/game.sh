@@ -6,19 +6,17 @@ ballSize=1 ballX=$((screenW/2-1)) ballY=$((screenH-1))
 paddleSize=15 paddleX=$((screenW/2-paddleSize/2)) paddleY=$((screenH-1)) 
 ballSpeedX=0 ballSpeedY=0 maxBallSpeed=2
 paddleSpeed=0 maxPaddleSpeed=4
-paddleSkewArea=2 paddleSafeArea=2
+paddleSkewArea=3 paddleSafeArea=1
 brickLines=3 brickLine=3 brickSize=${#BRICK} bricks=()
 ballState=parked
 
 game-mode() {
   KEY=
   tput clear
+
   score=0
-  
   lives=3
-  ballSpeedX=0 
-  ballSpeedY=0
-  ballState=parked
+  park-ball
   generate-bricks
 
   sound level
@@ -44,11 +42,13 @@ game-loop() {
       ((paddleSpeed = maxPaddleSpeed));;
     ' ')
       if [[ $ballState == parked ]]; then
-        sound start
-        ballState=launched
-        ballSpeedY=-1
-        ballSpeedX=1
-        erase 0 $((screenH / 2)) "$screenW"
+        launch-ball
+      elif ((
+        (nextBallY == paddleY - 1 || ballY == paddleY) &&
+        nextBallX >= paddleX - paddleSafeArea &&
+        nextBallX <= paddleX + paddleSize + paddleSafeArea
+      )); then 
+        park-ball
       fi
   esac
   KEY=
@@ -76,7 +76,6 @@ game-loop() {
 
   # Parked ball, stick to paddle
   if [[ $ballState == parked ]]; then
-    draw-centered $((screenH / 2)) 4 "PRESS <SPACE> TO LAUNCH"
     ballY=$((paddleY - 1))
     ballX=$((paddleX + paddleSize / 2))
   fi
@@ -129,10 +128,8 @@ game-loop() {
       # Abyss collision
       else
         sound gameover
-        ballState=parked
-        ballSpeedX=0
-        ballSpeedY=0
         ((lives--))
+        if check-gameover-conditions; then park-ball; fi
       fi
 
     fi
@@ -152,6 +149,7 @@ game-loop() {
           sound brick
         fi
       done
+      check-victory-conditions
     fi
 
     ((ballX += ballSpeedX))
@@ -165,18 +163,6 @@ game-loop() {
   draw $ballX $ballY 5 "$BALL"
 
   render
-
-  # Victory condition
-  if (( ${#bricks[@]} == 0 )); then
-    kill-thread "$gameSoundThread"
-    sound victory
-    teardown
-  fi
-
-  if (( lives == 0 )); then
-    kill-thread "$gameSoundThread"
-    gameover-mode
-  fi
 }
 
 generate-bricks() {
@@ -192,4 +178,35 @@ generate-bricks() {
       draw $brick
     done
   done
+}
+
+park-ball() {
+  draw-centered $((screenH / 2)) 4 "PRESS <SPACE> TO LAUNCH AND CATCH"
+  ballState=parked
+  ballSpeedX=0
+  ballSpeedY=0
+}
+
+launch-ball() {
+  sound start
+  ballState=launched
+  ballSpeedY=-1
+  ballSpeedX=1
+  erase 0 $((screenH / 2)) "$screenW"
+}
+
+check-victory-conditions() {
+  if (( ${#bricks[@]} == 0 )); then
+    kill-thread "$gameSoundThread"
+    victory-mode
+    return 1
+  fi
+}
+
+check-gameover-conditions() {
+  if (( lives == 0 )); then
+    kill-thread "$gameSoundThread"
+    gameover-mode
+    return 1
+  fi
 }
