@@ -7,19 +7,21 @@ readarray -t titleScreen < gfx/title.ans
 titleScreenOffset=$(center 140)
 
 # for A in $(seq 0 39); do perl -e "printf '%.0f ', cos($A / 3) * 6"; done
+# for A in $(seq 0 39); do perl -e "printf '%.0f ', cos($A / 6) * 6"; done
 sin=(
   3 3 2 2 1 -0 -1 -2 -3 -3 -3 -3 -2 -1 -0 1 2 2 3 3 3 2 2 1 1 -0 -1 -2 -3 -3 -3 -3 -2 -1 0 0 1 2
   3 3 2 1 -1 -2 -4 -5 -6 -6 -5 -4 -2 -0 2 3 5 6 6 6 5 3 1 -1 -3 -4 -5 -6 -6 -5 -4 -2 0 1 2
 ) sinc=${#sin[@]}
 
 title-mode() {
+  KEY=
   tput clear
 
   sound title
   titleSoundThread=$!
 
-  local text="Use Q and P to move  –  Press <space> to start"
-  draw "$(center ${#text})" "$((screenH - 5))" 3 "$text"
+  draw-centered $((screenH - 7)) 3 "Free the citizens from oppression"
+  draw-centered $((screenH - 5)) 1 "Use Q and P to move the paddle  –  Press <space> to start"
 
   LOOP=title-loop
 }

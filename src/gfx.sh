@@ -36,6 +36,22 @@ draw() {
   framebuffer="${framebuffer}\e[$((y+1));$((x+1))H\e[$((color+90));m${str}\e[m"
 }
 
+draw-centered() {
+  local y=$1
+  local color=$2
+  local str=${*:3}
+  local offset=$(center ${#str})
+  draw "$offset" "$y" "$color" "$str"
+}
+
+draw-right() {
+  local y=$1
+  local color=$2
+  local str=${*:3}
+  local offset=$((screenW - ${#str}))
+  draw "$offset" "$y" "$color" "$str"
+}
+
 draw-picture() {
   local x=$1
   local y=$2

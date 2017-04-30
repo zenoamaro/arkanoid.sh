@@ -6,6 +6,7 @@ source src/gfx.sh
 source src/sound.sh
 source src/title.sh
 source src/game.sh
+source src/gameover.sh
 
 LOOP=
 
