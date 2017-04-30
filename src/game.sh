@@ -2,13 +2,13 @@
 
 score=
 lives=
+ballState=parked
 ballSize=1 ballX=$((screenW/2-1)) ballY=$((screenH-1))
 paddleSize=15 paddleX=$((screenW/2-paddleSize/2)) paddleY=$((screenH-1)) 
 ballSpeedX=0 ballSpeedY=0 maxBallSpeed=2
 paddleSpeed=0 maxPaddleSpeed=4
 paddleSkewArea=3 paddleSafeArea=1
 brickLines=3 brickLine=3 brickSize=${#BRICK} bricks=()
-ballState=parked
 
 game-mode() {
   KEY=
@@ -17,7 +17,7 @@ game-mode() {
   score=0
   lives=3
   park-ball
-  generate-bricks
+  build-bricks
 
   sound level
   gameSoundThread=$!
@@ -78,9 +78,9 @@ game-loop() {
   if [[ $ballState == parked ]]; then
     ballY=$((paddleY - 1))
     ballX=$((paddleX + paddleSize / 2))
-  fi
 
-  if [[ $ballState == launched ]]; then
+  # Ball is free-moving
+  elif [[ $ballState == launched ]]; then
     # Prediction
     ((nextBallX = ballX + ballSpeedX))
     ((nextBallY = ballY + ballSpeedY))
@@ -140,13 +140,17 @@ game-loop() {
     if ((nextBallY <= lastBrick[1])); then
       for index in "${!bricks[@]}"; do
         brick=(${bricks[$index]})
+        # Brick was hit
         if ((nextBallY == brick[1] && nextBallX >= brick[0] && nextBallX <= brick[0] + brickSize)); then
+          # Affect score
           ((score++))
+          sound brick
+          # Affect ball
           ((ballSpeedY = -ballSpeedY))
           ((nextBallY = ballY + ballSpeedY))
+          # Clean brick
           erase "${brick[0]}" "${brick[1]}" "$brickSize"
           unset bricks["$index"]
-          sound brick
         fi
       done
       check-victory-conditions
@@ -165,7 +169,7 @@ game-loop() {
   render
 }
 
-generate-bricks() {
+build-bricks() {
   local count=$((screenW / brickSize - 1))
   local padding=$(( (screenW % brickSize) / 2 ))
 
@@ -181,7 +185,7 @@ generate-bricks() {
 }
 
 park-ball() {
-  draw-centered $((screenH / 2)) 4 "PRESS <SPACE> TO LAUNCH AND CATCH"
+  draw-centered $((screenH / 2)) 4 "PRESS <SPACE> TO LAUNCH OR CATCH"
   ballState=parked
   ballSpeedX=0
   ballSpeedY=0
@@ -191,7 +195,11 @@ launch-ball() {
   sound start
   ballState=launched
   ballSpeedY=-1
-  ballSpeedX=1
+  if ((paddleSpeed < 0)); then
+    ballSpeedX=-1
+  else
+    ballSpeedX=1
+  fi
   erase 0 $((screenH / 2)) "$screenW"
 }
 
