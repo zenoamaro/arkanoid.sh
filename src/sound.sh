@@ -10,7 +10,7 @@ sound-setup() {
   elif which aplay; then
     playSound='sound-aplay'
   else
-    playSound-'sound-beep'
+    playSound='sound-beep'
   fi
 }
 
