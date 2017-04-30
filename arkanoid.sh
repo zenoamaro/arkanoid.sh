@@ -11,6 +11,11 @@ source src/gameover.sh
 
 LOOP=
 
+if [[ "$(bash --version)" =~ "bash, version 3" ]]; then
+  echo This game requires Bash 4 to run.
+  exit 1
+fi
+
 setup() {
   trap teardown EXIT INT
   trap start-loop ALRM
