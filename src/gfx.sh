@@ -2,6 +2,7 @@
 
 originalTTY=
 framebuffer=
+frame=0
 
 screenW=$(tput cols)
 screenH=$(tput lines)
@@ -24,6 +25,7 @@ gfx-teardown() {
 render() {
   echo -en "${framebuffer}"
   framebuffer=
+  ((frame++))
 }
 
 draw() {
@@ -51,7 +53,7 @@ erase() {
   local x=$1
   local y=$2
   local len=$3
-  framebuffer="${framebuffer}\e[$((y+1));$((x+1))H$(repeat ' ' "$len")"
+  framebuffer="${framebuffer}\e[$((y+1));$((x+1))H\e[${len}X"
 }
 
 repeat() {
