@@ -1,24 +1,71 @@
 #!/usr/bin/env bash
 
-score=
-lives=
-ballState=parked
-ballSize=1 ballX=$((screenW/2-1)) ballY=$((screenH-1))
-paddleSize=15 paddleX=$((screenW/2-paddleSize/2)) paddleY=$((screenH-1)) 
-ballSpeedX=0 ballSpeedY=0 maxBallSpeed=2
-paddleSpeed=0 maxPaddleSpeed=4
-paddleSkewArea=3 paddleSafeArea=1
-brickLines=3 brickLine=3 brickSize=${#BRICK} bricks=()
+
+# Graphic assets
+# --------------
+
+BALL='⚪️'
+MAX_BALL_SPEED=2
+
+BRICK='▟██████████▛'
+BRICK_START_LINE=3
+BRICK_LINES=3
+
+MAX_PADDLE_SPEED=4
+PADDLE_SKEW_AREA=3
+PADDLE_SAFE_AREA=1
+INITIAL_PADDLE_TYPE=1
+PADDLE_TYPES=(
+  '≺{✣–=–✣}≻'
+  '≺{✣–––===–––✣}≻'
+  '≺{✣––<––=====––>––✣}≻'
+  '–≺{✣––<⊂––==<✧>==––⊃>––✣}≻–'
+)
+
+POWERUP_CHANCE=$((32768 / 100 * 100))
+POWERUP_SLOWDOWN=3
+POWERUP_TYPES=(
+  "grow 📟"
+  "shrink 💢"
+  "life ❤️"
+  "shield 🛡"
+)
+
+
+reset-game() {
+  score=0
+  lives=3
+  
+  paddle=
+  paddleType=
+  set-paddle $INITIAL_PADDLE_TYPE
+  paddleX=$((screenW/2 - paddleSize/2)) 
+  paddleY=$((screenH-1)) 
+  paddleSpeed=0 
+  
+  ballState=parked
+  ballX=0 ballY=0
+  ballSpeedX=0 ballSpeedY=0
+  ballSize=${#BALL}
+  park-ball
+  
+  powerup=
+  powerupType=
+  powerupSize=
+  clear-powerup
+  powerupX=0 powerupY=0
+
+  bricks=()
+  brickSize=${#BRICK} 
+  build-bricks
+
+  shield=
+}
 
 game-mode() {
   KEY=
   tput clear
-
-  score=0
-  lives=3
-  park-ball
-  build-bricks
-
+  reset-game
   sound level
   gameSoundThread=$!
   LOOP=game-loop
@@ -26,8 +73,9 @@ game-mode() {
 
 game-loop() {
   # Clean frame
-  erase $paddleX $paddleY $paddleSize
-  erase $ballX $ballY $ballSize
+  erase "$powerupX" "$powerupY" "${powerupSize}"
+  erase "$paddleX" "$paddleY" "$paddleSize"
+  erase "$ballX" "$ballY" "$ballSize"
 
 
   # Paddle movement
@@ -36,17 +84,17 @@ game-loop() {
   case $KEY in
     'q')
       if ((paddleSpeed == 0)); then sound move; fi
-      ((paddleSpeed = -maxPaddleSpeed));;
+      ((paddleSpeed = -MAX_PADDLE_SPEED));;
     'p')
       if ((paddleSpeed == 0)); then sound move; fi
-      ((paddleSpeed = maxPaddleSpeed));;
+      ((paddleSpeed = MAX_PADDLE_SPEED));;
     ' ')
       if [[ $ballState == parked ]]; then
         launch-ball
       elif ((
         (nextBallY == paddleY - 1 || ballY == paddleY) &&
-        nextBallX >= paddleX - paddleSafeArea &&
-        nextBallX <= paddleX + paddleSize + paddleSafeArea
+        nextBallX >= paddleX - PADDLE_SAFE_AREA &&
+        nextBallX <= paddleX + paddleSize + PADDLE_SAFE_AREA
       )); then 
         park-ball
       fi
@@ -70,6 +118,20 @@ game-loop() {
     ((paddleX = screenW - paddleSize))
   fi
   
+
+  # Powerup movement
+  # ----------------
+
+  if [[ ! -z $powerup ]]; then
+    if ((frame % POWERUP_SLOWDOWN == 0)); then
+      ((powerupY++)); 
+    fi
+    if ((powerupY >= paddleY)); then
+      check-powerup-conditions
+      clear-powerup
+    fi
+  fi
+
 
   # Ball movement
   # -------------
@@ -107,16 +169,16 @@ game-loop() {
     elif ((nextBallY == screenH)); then
 
       # Paddle collision
-      if ((nextBallX >= paddleX - paddleSafeArea && nextBallX <= paddleX + paddleSize + paddleSafeArea)); then 
+      if ((nextBallX >= paddleX - PADDLE_SAFE_AREA && nextBallX <= paddleX + paddleSize + PADDLE_SAFE_AREA)); then 
 
         # Paddle skew area
-        if ((nextBallX < paddleX + paddleSkewArea)); then
+        if ((nextBallX < paddleX + PADDLE_SKEW_AREA)); then
           if ((ballSpeedX != 1)); then ((ballSpeedX -= 1)); fi
-          if ((ballSpeedX <= -maxBallSpeed)); then ((ballSpeedX = -maxBallSpeed)); fi
+          if ((ballSpeedX <= -MAX_BALL_SPEED)); then ((ballSpeedX = -MAX_BALL_SPEED)); fi
           ((nextBallX = ballX + ballSpeedX))
-        elif ((nextBallX > paddleX + paddleSize - paddleSkewArea)); then 
+        elif ((nextBallX > paddleX + paddleSize - PADDLE_SKEW_AREA)); then 
           if ((ballSpeedX != -1)); then ((ballSpeedX += 1)); fi
-          if ((ballSpeedX >= maxBallSpeed)); then ((ballSpeedX = maxBallSpeed)); fi
+          if ((ballSpeedX >= MAX_BALL_SPEED)); then ((ballSpeedX = MAX_BALL_SPEED)); fi
           ((nextBallX = ballX + ballSpeedX))
         fi
 
@@ -127,9 +189,7 @@ game-loop() {
 
       # Abyss collision
       else
-        sound gameover
-        ((lives--))
-        if check-gameover-conditions; then park-ball; fi
+        life-lost
       fi
 
     fi
@@ -151,6 +211,10 @@ game-loop() {
           # Clean brick
           erase "${brick[0]}" "${brick[1]}" "$brickSize"
           unset bricks["$index"]
+          # Random chance of powerup
+          if [[ -z $powerup ]] && ((RANDOM <= POWERUP_CHANCE)); then
+            spawn-powerup $((brick[0] + brickSize / 2)) "${brick[1]}"
+          fi
         fi
       done
       check-victory-conditions
@@ -163,21 +227,40 @@ game-loop() {
   # Score and entities
   draw 0 0 7 "Lives: $lives"
   draw-right 0 7 "Score: $score"
-  draw $paddleX $paddleY 6 "$PADDLE"
+  draw $paddleX $paddleY 6 "$paddle"
   draw $ballX $ballY 5 "$BALL"
+  if [[ ! -z $powerupType ]]; then draw $powerupX $powerupY 5 "$powerup"; fi
 
   render
+}
+
+set-paddle() {
+  paddleType=$1
+  paddle=${PADDLE_TYPES[$paddleType]}
+  paddleSize=${#paddle}
+}
+
+shrink-paddle() {
+  if ((paddleType > 0)); then
+    set-paddle $((paddleType - 1))
+  fi
+}
+
+grow-paddle() {
+  if ((paddleType < ${#PADDLE_TYPES[@]} - 1)); then
+    set-paddle $((paddleType + 1))
+  fi
 }
 
 build-bricks() {
   local count=$((screenW / brickSize - 1))
   local padding=$(( (screenW % brickSize) / 2 ))
 
-  for y in $(seq 0 $((brickLines - 1))); do
+  for y in $(seq 0 $((BRICK_LINES - 1))); do
     for x in $(seq 0 $count); do
       local color=$(((RANDOM % 8) + 1))
       local x=$((padding + x * brickSize))
-      local brick="$x $((y+brickLine)) $color $BRICK"
+      local brick="$x $((y+BRICK_START_LINE)) $color $BRICK"
       bricks+=("$brick")
       draw $brick
     done
@@ -203,12 +286,62 @@ launch-ball() {
   erase 0 $((screenH / 2)) "$screenW"
 }
 
+add-life() {
+  ((lives++))
+}
+
+add-shield() {
+  shield=on
+}
+
+remove-shield() {
+  shield=
+}
+
+spawn-powerup() {
+  local x=$1
+  local y=$2
+  local index=$((RANDOM % ${#POWERUP_TYPES[@]}))
+  local powerupSpec=(${POWERUP_TYPES[$index]})
+  powerupType=${powerupSpec[0]} powerup=${powerupSpec[1]} 
+  powerupX="$x" powerupY="$y" powerupSize=${#powerup}
+}
+
+apply-powerup() {
+  local type=$1
+  case "$type" in
+    shrink) shrink-paddle;;
+    grow) grow-paddle;;
+    shield) add-shield;;
+    life) add-life;;
+  esac
+  sound powerup
+}
+
+clear-powerup() {
+  powerup=
+  powerupType=
+}
+
+check-powerup-conditions() {
+  if ((powerupX >= paddleX - PADDLE_SAFE_AREA && powerupX <= paddleX + paddleSize + PADDLE_SAFE_AREA)); then
+    apply-powerup "$powerupType"
+  fi
+}
+
 check-victory-conditions() {
   if (( ${#bricks[@]} == 0 )); then
     kill-thread "$gameSoundThread"
     victory-mode
     return 1
   fi
+}
+
+life-lost() {
+  sound lose
+  ((lives--))
+  set-paddle $INITIAL_PADDLE_TYPE
+  if check-gameover-conditions; then park-ball; fi
 }
 
 check-gameover-conditions() {
