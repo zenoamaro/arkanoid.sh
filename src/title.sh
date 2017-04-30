@@ -33,7 +33,6 @@ title-loop() {
     for line in "${titleScreen[@]}"; do
       local i=$(((frame / 2 + y) % sinc))
       local x=$((titleScreenOffset + sin["$i"]))
-      # erase 0 "$y" "$screenW"
       draw "$x" "$y" 0 "\e[1K$line\e[K"
       ((y++))
     done

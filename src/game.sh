@@ -3,8 +3,10 @@
 score=0
 ballSize=1 ballX=$((screenW/2-1)) ballY=$((screenH-1))
 paddleSize=15 paddleX=$((screenW/2-paddleSize/2)) paddleY=$((screenH-1)) 
-ballSpeedX=1 ballSpeedY=-1 paddleSpeed=0 maxPaddleSpeed=4 paddleSafeArea=4
-brickLines=5 brickLine=3 brickSize=${#BRICK} bricks=()
+ballSpeedX=1 ballSpeedY=-1 maxBallSpeed=2
+paddleSpeed=0 maxPaddleSpeed=4
+paddleSkewArea=2 paddleSafeArea=2
+brickLines=3 brickLine=3 brickSize=${#BRICK} bricks=()
 
 game-mode() {
   tput clear
@@ -21,11 +23,11 @@ game-loop() {
 
   case $KEY in
     'q')
-      ((paddleSpeed = -maxPaddleSpeed))
-      sound move;;
+      if ((paddleSpeed == 0)); then sound move; fi
+      ((paddleSpeed = -maxPaddleSpeed));;
     'p')
-      ((paddleSpeed = maxPaddleSpeed))
-      sound move;;
+      if ((paddleSpeed == 0)); then sound move; fi
+      ((paddleSpeed = maxPaddleSpeed));;
   esac
   KEY=
   
@@ -39,10 +41,8 @@ game-loop() {
   
   if ((paddleX < 0)); then
     ((paddleX = 0))
-    # ((paddleSpeed = -paddleSpeed))
   elif ((paddleX > screenW - paddleSize)); then
     ((paddleX = screenW - paddleSize))
-    # ((paddleSpeed = -paddleSpeed))
   fi
   
   ((nextBallX = ballX + ballSpeedX))
@@ -50,30 +50,32 @@ game-loop() {
 
   if ((nextBallX < 0)); then
     ((ballX = 0))
-    ((ballSpeedX = -ballSpeedX)); sound wall
+    ((ballSpeedX = -ballSpeedX))
     ((nextBallX = ballX + ballSpeedX))
+    sound wall
   elif ((nextBallX >= screenW)); then
     ((ballX = screenW - 1))
-    ((ballSpeedX = -ballSpeedX)); sound wall
+    ((ballSpeedX = -ballSpeedX))
     ((nextBallX = ballX + ballSpeedX))
+    sound wall
   fi
 
   if ((nextBallY == 0)); then
     ((ballSpeedY = 1)); sound wall
     ((nextBallY = ballY + ballSpeedY))
   elif ((nextBallY == screenH)); then
-    if ((nextBallX < paddleX - 1 || nextBallX > paddleX + paddleSize + 1)); then 
+    if ((nextBallX < paddleX - paddleSafeArea || nextBallX > paddleX + paddleSize + paddleSafeArea)); then 
       kill-thread "$gameSoundThread"
       sound gameover
       teardown
     else
-      if ((nextBallX < paddleX + paddleSafeArea)); then
-        ((ballSpeedX -= 1))
-        if ((ballSpeedX <= -2)); then ((ballSpeedX = -2)); fi
+      if ((nextBallX < paddleX + paddleSkewArea)); then
+        if ((ballSpeedX != 1)); then ((ballSpeedX -= 1)); fi
+        if ((ballSpeedX <= -maxBallSpeed)); then ((ballSpeedX = -maxBallSpeed)); fi
         ((nextBallX = ballX + ballSpeedX))
-      elif ((nextBallX > paddleX + paddleSize - paddleSafeArea)); then 
-        ((ballSpeedX += 1))
-        if ((ballSpeedX >= 2)); then ((ballSpeedX = 2)); fi
+      elif ((nextBallX > paddleX + paddleSize - paddleSkewArea)); then 
+        if ((ballSpeedX != -1)); then ((ballSpeedX += 1)); fi
+        if ((ballSpeedX >= maxBallSpeed)); then ((ballSpeedX = maxBallSpeed)); fi
         ((nextBallX = ballX + ballSpeedX))
       fi
       ((ballSpeedY = -1))
@@ -100,7 +102,6 @@ game-loop() {
         unset bricks["$index"]
         sound brick
       fi
-      ((i++))
     done
   fi
 
@@ -108,8 +109,8 @@ game-loop() {
   ((ballY += ballSpeedY))
 
   draw 0 0 7 "Score: $score"
-  draw $paddleX $paddleY 6 $PADDLE
-  draw $ballX $ballY 5 $BALL
+  draw $paddleX $paddleY 6 "$PADDLE"
+  draw $ballX $ballY 5 "$BALL"
 
   render
 }
@@ -122,7 +123,7 @@ generate-bricks() {
     for x in $(seq 0 $count); do
       local color=$(((RANDOM % 8) + 1))
       local x=$((padding + x * brickSize))
-      local brick="$x $((y+$brickLine)) $color $BRICK"
+      local brick="$x $((y+brickLine)) $color $BRICK"
       bricks+=("$brick")
       draw $brick
     done
