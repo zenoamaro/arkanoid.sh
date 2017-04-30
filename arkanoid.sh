@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 source config.sh
-source util.sh
-source input.sh
-source gfx.sh
-source sound.sh
-source title.sh
-source game.sh
+source src/util.sh
+source src/input.sh
+source src/gfx.sh
+source src/sound.sh
+source src/title.sh
+source src/game.sh
 
 LOOP=
 
