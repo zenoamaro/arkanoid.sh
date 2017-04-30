@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 
 score=0
-screenW=$(tput cols) screenH=$(tput lines) screenC=$((screenW*screenH))
 ballSize=1 ballX=$((screenW/2-1)) ballY=$((screenH-1))
 paddleSize=15 paddleX=$((screenW/2-paddleSize/2)) paddleY=$((screenH-1)) 
 ballSpeedX=1 ballSpeedY=-1 paddleSpeed=0 maxPaddleSpeed=4 paddleSafeArea=4
-brickSize=${#BRICK} bricks=()
+brickLines=5 brickLine=3 brickSize=${#BRICK} bricks=()
 
 game-mode() {
   tput clear
   generate-bricks
+  sound level
+  gameSoundThread=$!
   sound start
   LOOP=game-loop
 }
@@ -62,6 +63,7 @@ game-loop() {
     ((nextBallY = ballY + ballSpeedY))
   elif ((nextBallY == screenH)); then
     if ((nextBallX < paddleX - 1 || nextBallX > paddleX + paddleSize + 1)); then 
+      kill-thread "$gameSoundThread"
       sound gameover
       teardown
     else
@@ -81,6 +83,7 @@ game-loop() {
   fi
 
   if (( ${#bricks[@]} == 0 )); then
+    kill-thread "$gameSoundThread"
     sound victory
     teardown
   fi
@@ -112,14 +115,14 @@ game-loop() {
 }
 
 generate-bricks() {
-  local lines=5
   local count=$((screenW / brickSize - 1))
+  local padding=$(( (screenW % brickSize) / 2 ))
 
-  for y in $(seq 1 $((lines))); do
+  for y in $(seq 0 $((brickLines - 1))); do
     for x in $(seq 0 $count); do
       local color=$(((RANDOM % 8) + 1))
-      local x=$((x * brickSize))
-      local brick="$x $y $color $BRICK"
+      local x=$((padding + x * brickSize))
+      local brick="$x $((y+$brickLine)) $color $BRICK"
       bricks+=("$brick")
       draw $brick
     done

@@ -1,17 +1,26 @@
 #!/usr/bin/env bash
 
-soundThread=
+titleSoundThread=
 
 title-mode() {
   tput clear
+
   sound title
-  cat gfx/title.ans
+  titleSoundThread=$!
+  title-screen
+  render
   LOOP=title-loop
 }
 
 title-loop() {
   if [[ $KEY == ' ' ]]; then
-    terminate-all-threads
+    kill-thread $titleSoundThread
     game-mode
   fi
+}
+
+title-screen() {
+  draw-picture $(center 140) 5 title
+  local text="Use Q and P to move  –  Press <space> to start"
+  draw $(center ${#text}) $((screenH - 5)) 3 "$text"
 }

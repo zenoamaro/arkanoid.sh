@@ -20,21 +20,21 @@ sound-teardown() {
 
 sound() {
   local sound=sound/$1.mp3
-  start-thread $playSound "$sound"
+  $playSound "$sound"
 }
 
 sound-afplay() {
-  afplay "$*"
+  afplay "$*" &
 }
 
 sound-paplay() {
-  paplay "$*"
+  paplay "$*" &
 }
 
 sound-aplay() {
-  aplay "$*"
+  aplay "$*" &
 }
 
 sound-beep() {
-  echo -en '\a'
+  echo -en '\a' &
 }
