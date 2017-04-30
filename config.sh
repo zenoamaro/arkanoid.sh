@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 PLATFORM=$(uname -s)
-DELAY=0.015
-BALL='🎾'
+DELAY=0.02
+BALL='⚪️'
 PADDLE='≺{✣–––===–––✣}≻'
 BRICK='▟██████████▛'
