@@ -1,10 +1,7 @@
 #!/usr/bin/env bash
 
 titleSoundThread=
-
 titleScreen=()
-readarray -t titleScreen < gfx/title.ans
-titleScreenOffset=$(center 140)
 
 # for A in $(seq 0 39); do perl -e "printf '%.0f ', cos($A / 3) * 6"; done
 # for A in $(seq 0 39); do perl -e "printf '%.0f ', cos($A / 6) * 6"; done
@@ -20,8 +17,11 @@ title-mode() {
   sound title
   titleSoundThread=$!
 
-  draw-centered $((screenH - 7)) 3 "Free the citizens from oppression"
-  draw-centered $((screenH - 5)) 1 "Use Q and P to move the paddle  –  Press <space> to start"
+  draw-centered $((SCREEN_HEIGHT - 7)) 3 "Free the citizens from oppression"
+  draw-centered $((SCREEN_HEIGHT - 5)) 1 "Use Q and P to move the paddle  –  Press <space> to start"
+
+  readarray -t titleScreen < gfx/title.ans
+  titleScreenOffset=$(center 140)
 
   LOOP=title-loop
 }

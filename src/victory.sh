@@ -7,8 +7,8 @@ victory-mode() {
   sound victory
   victorySoundThread=$!
 
-  draw-centered $((screenH / 2 - 1)) 3 "The citizens have been stirred!  The freedom is unstoppable!  Hurray!"
-  draw-centered $((screenH / 2 + 1)) 1 "Press <space> to get reminisce about the old days"
+  draw-centered $((SCREEN_HEIGHT / 2 - 1)) 3 "The citizens have been stirred!  The freedom is unstoppable!  Hurray!"
+  draw-centered $((SCREEN_HEIGHT / 2 + 1)) 1 "Press <space> to get reminisce about the old days"
 
   LOOP=victory-loop
 }

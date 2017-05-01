@@ -4,27 +4,27 @@
 # Graphic assets
 # --------------
 
-BALL='⚪️'
-MAX_BALL_SPEED=2
+readonly BALL='⚪️'
+readonly MAX_BALL_SPEED=2
 
-BRICK='▟██████████▛'
-BRICK_START_LINE=3
-BRICK_LINES=3
+readonly BRICK='▟██████████▛'
+readonly BRICK_START_LINE=3
+readonly BRICK_LINES=3
 
-MAX_PADDLE_SPEED=4
-PADDLE_SKEW_AREA=3
-PADDLE_SAFE_AREA=1
-INITIAL_PADDLE_TYPE=1
-PADDLE_TYPES=(
+readonly MAX_PADDLE_SPEED=4
+readonly PADDLE_SKEW_AREA=3
+readonly PADDLE_SAFE_AREA=1
+readonly INITIAL_PADDLE_TYPE=1
+readonly PADDLE_TYPES=(
   '≺{✣–=–✣}≻'
   '≺{✣–––===–––✣}≻'
   '≺{✣––<––=====––>––✣}≻'
   '–≺{✣––<⊂––==<✧>==––⊃>––✣}≻–'
 )
 
-POWERUP_CHANCE=$((32768 / 100 * 100))
-POWERUP_SLOWDOWN=3
-POWERUP_TYPES=(
+readonly POWERUP_CHANCE=$((32768 / 100 * 100))
+readonly POWERUP_SLOWDOWN=3
+readonly POWERUP_TYPES=(
   "grow 📟"
   "shrink 💢"
   "life ❤️"
@@ -39,8 +39,8 @@ reset-game() {
   paddle=
   paddleType=
   set-paddle $INITIAL_PADDLE_TYPE
-  paddleX=$((screenW/2 - paddleSize/2)) 
-  paddleY=$((screenH-1)) 
+  paddleX=$((SCREEN_WIDTH/2 - paddleSize/2)) 
+  paddleY=$((SCREEN_HEIGHT-1)) 
   paddleSpeed=0 
   
   ballState=parked
@@ -114,8 +114,8 @@ game-loop() {
   # Stop at screen borders
   if ((paddleX < 0)); then
     ((paddleX = 0))
-  elif ((paddleX > screenW - paddleSize)); then
-    ((paddleX = screenW - paddleSize))
+  elif ((paddleX > SCREEN_WIDTH - paddleSize)); then
+    ((paddleX = SCREEN_WIDTH - paddleSize))
   fi
   
 
@@ -153,8 +153,8 @@ game-loop() {
       ((ballSpeedX = -ballSpeedX))
       ((nextBallX = ballX + ballSpeedX))
       sound wall
-    elif ((nextBallX >= screenW)); then
-      ((ballX = screenW - 1))
+    elif ((nextBallX >= SCREEN_WIDTH)); then
+      ((ballX = SCREEN_WIDTH - 1))
       ((ballSpeedX = -ballSpeedX))
       ((nextBallX = ballX + ballSpeedX))
       sound wall
@@ -166,7 +166,7 @@ game-loop() {
       ((nextBallY = ballY + ballSpeedY))
     
     # Bottom collision
-    elif ((nextBallY == screenH)); then
+    elif ((nextBallY == SCREEN_HEIGHT)); then
 
       # Paddle collision
       if ((nextBallX >= paddleX - PADDLE_SAFE_AREA && nextBallX <= paddleX + paddleSize + PADDLE_SAFE_AREA)); then 
@@ -253,8 +253,8 @@ grow-paddle() {
 }
 
 build-bricks() {
-  local count=$((screenW / brickSize - 1))
-  local padding=$(( (screenW % brickSize) / 2 ))
+  local count=$((SCREEN_WIDTH / brickSize - 1))
+  local padding=$(( (SCREEN_WIDTH % brickSize) / 2 ))
 
   for y in $(seq 0 $((BRICK_LINES - 1))); do
     for x in $(seq 0 $count); do
@@ -268,7 +268,7 @@ build-bricks() {
 }
 
 park-ball() {
-  draw-centered $((screenH / 2)) 4 "PRESS <SPACE> TO LAUNCH OR CATCH"
+  draw-centered $((SCREEN_HEIGHT / 2)) 4 "PRESS <SPACE> TO LAUNCH OR CATCH"
   ballState=parked
   ballSpeedX=0
   ballSpeedY=0
@@ -283,7 +283,7 @@ launch-ball() {
   else
     ballSpeedX=1
   fi
-  erase 0 $((screenH / 2)) "$screenW"
+  erase 0 $((SCREEN_HEIGHT / 2)) "$SCREEN_WIDTH"
 }
 
 add-life() {

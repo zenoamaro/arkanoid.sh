@@ -7,8 +7,8 @@ gameover-mode() {
   sound gameover
   gameoverSoundThread=$!
 
-  draw-centered $((screenH / 2 - 1)) 3 "You failed to liberate your fellow brothers.  But you may get to try again"
-  draw-centered $((screenH / 2 + 1)) 1 "Press <space> to get revenge"
+  draw-centered $((SCREEN_HEIGHT / 2 - 1)) 3 "You failed to liberate your fellow brothers.  But you may get to try again"
+  draw-centered $((SCREEN_HEIGHT / 2 + 1)) 1 "Press <space> to get revenge"
 
   LOOP=gameover-loop
 }

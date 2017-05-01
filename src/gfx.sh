@@ -1,21 +1,20 @@
 #!/usr/bin/env bash
 
-originalTTY=
+readonly SCREEN_WIDTH=$(tput cols)
+readonly SCREEN_HEIGHT=$(tput lines)
+readonly ORIGINAL_TTY=$(stty -g)
+
 framebuffer=
 frame=0
 
-screenW=$(tput cols)
-screenH=$(tput lines)
-
 gfx-setup() {
-  originalTTY=$(stty -g)
   stty raw -echo
   tput civis  
   tput rmam
 }
 
 gfx-teardown() {
-  stty "$originalTTY"
+  stty "$ORIGINAL_TTY"
   tput cvvis
   tput smam
   tput sgr0
@@ -48,7 +47,7 @@ draw-right() {
   local y=$1
   local color=$2
   local str=${*:3}
-  local offset=$((screenW - ${#str}))
+  local offset=$((SCREEN_WIDTH - ${#str}))
   draw "$offset" "$y" "$color" "$str"
 }
 
@@ -80,7 +79,7 @@ repeat() {
 
 center() {
   local size=$1
-  local padding=$(( (screenW-size) / 2 ))
+  local padding=$(( (SCREEN_WIDTH-size) / 2 ))
   if ((padding < 0)); then ((padding = 0)); fi
   echo $padding
 }
