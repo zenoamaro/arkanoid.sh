@@ -22,7 +22,7 @@ readonly PADDLE_TYPES=(
   '–≺{✣––<⊂––==<✧>==––⊃>––✣}≻–'
 )
 
-readonly POWERUP_CHANCE=$((32768 / 100 * 100))
+readonly POWERUP_CHANCE=$((32767 / 100 * 100))
 readonly POWERUP_SLOWDOWN=3
 readonly POWERUP_TYPES=(
   "grow 📟"
@@ -40,7 +40,7 @@ reset-game() {
   paddleType=
   set-paddle $INITIAL_PADDLE_TYPE
   paddleX=$((SCREEN_WIDTH/2 - paddleSize/2)) 
-  paddleY=$((SCREEN_HEIGHT-1)) 
+  paddleY=$((SCREEN_HEIGHT-2)) 
   paddleSpeed=0 
   
   ballState=parked
@@ -160,40 +160,6 @@ game-loop() {
       sound wall
     fi
 
-    # Ceiling collision
-    if ((nextBallY == 0)); then
-      ((ballSpeedY = 1)); sound wall
-      ((nextBallY = ballY + ballSpeedY))
-    
-    # Bottom collision
-    elif ((nextBallY == SCREEN_HEIGHT)); then
-
-      # Paddle collision
-      if ((nextBallX >= paddleX - PADDLE_SAFE_AREA && nextBallX <= paddleX + paddleSize + PADDLE_SAFE_AREA)); then 
-
-        # Paddle skew area
-        if ((nextBallX < paddleX + PADDLE_SKEW_AREA)); then
-          if ((ballSpeedX != 1)); then ((ballSpeedX -= 1)); fi
-          if ((ballSpeedX <= -MAX_BALL_SPEED)); then ((ballSpeedX = -MAX_BALL_SPEED)); fi
-          ((nextBallX = ballX + ballSpeedX))
-        elif ((nextBallX > paddleX + paddleSize - PADDLE_SKEW_AREA)); then 
-          if ((ballSpeedX != -1)); then ((ballSpeedX += 1)); fi
-          if ((ballSpeedX >= MAX_BALL_SPEED)); then ((ballSpeedX = MAX_BALL_SPEED)); fi
-          ((nextBallX = ballX + ballSpeedX))
-        fi
-
-        # Affect ball
-        ((ballSpeedY = -1))
-        ((nextBallY = ballY + ballSpeedY))
-        sound paddle
-
-      # Abyss collision
-      else
-        life-lost
-      fi
-
-    fi
-
     # Check collisions with bricks
     # if ball is inside brick line
     local lastBrick=(${bricks[-1]})
@@ -220,6 +186,47 @@ game-loop() {
       check-victory-conditions
     fi
 
+    # Ceiling collision
+    if ((nextBallY == 0)); then
+      ((ballSpeedY = 1)); sound wall
+      ((nextBallY = ballY + ballSpeedY))
+    
+      # Paddle collision
+    elif ((
+      ballSpeedY > 0 &&
+      nextBallY == paddleY &&
+      nextBallX >= paddleX - PADDLE_SAFE_AREA &&
+      nextBallX <= paddleX + paddleSize + PADDLE_SAFE_AREA
+    )); then 
+      # Paddle skew area
+      if ((nextBallX < paddleX + PADDLE_SKEW_AREA)); then
+        if ((ballSpeedX != 1)); then ((ballSpeedX -= 1)); fi
+        if ((ballSpeedX <= -MAX_BALL_SPEED)); then ((ballSpeedX = -MAX_BALL_SPEED)); fi
+        ((nextBallX = ballX + ballSpeedX))
+      elif ((nextBallX > paddleX + paddleSize - PADDLE_SKEW_AREA)); then 
+        if ((ballSpeedX != -1)); then ((ballSpeedX += 1)); fi
+        if ((ballSpeedX >= MAX_BALL_SPEED)); then ((ballSpeedX = MAX_BALL_SPEED)); fi
+        ((nextBallX = ballX + ballSpeedX))
+      fi
+
+      # Affect ball
+      ((ballSpeedY = -1))
+      ((nextBallY = ballY + ballSpeedY))
+      sound paddle
+
+    # Bottom collision
+    elif ((nextBallY == SCREEN_HEIGHT - 1)); then
+      # Shield saves the ball, at the cost of the shield
+      if [[ $shield == 'on' ]]; then
+        ((ballSpeedY = -1))
+        ((nextBallY = ballY + ballSpeedY))
+        remove-shield
+        sound wall
+      else
+        life-lost
+      fi
+    fi
+
     ((ballX += ballSpeedX))
     ((ballY += ballSpeedY))
   fi
@@ -229,7 +236,10 @@ game-loop() {
   draw-right 0 7 "Score: $score"
   draw $paddleX $paddleY 6 "$paddle"
   draw $ballX $ballY 5 "$BALL"
-  if [[ ! -z $powerupType ]]; then draw $powerupX $powerupY 5 "$powerup"; fi
+
+  if [[ ! -z $powerupType ]]; then
+    draw $powerupX $powerupY 5 "$powerup"; 
+  fi
 
   render
 }
@@ -292,10 +302,12 @@ add-life() {
 
 add-shield() {
   shield=on
+  draw 0 $((SCREEN_HEIGHT - 1)) 2 "$(repeat '=' "$SCREEN_WIDTH")"
 }
 
 remove-shield() {
   shield=
+  erase 0 $((SCREEN_HEIGHT - 1)) "$SCREEN_WIDTH"
 }
 
 spawn-powerup() {
