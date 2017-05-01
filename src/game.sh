@@ -4,6 +4,9 @@
 # Graphic assets
 # --------------
 
+readonly STATUS_COLOR=7
+readonly NOTICE_COLOR=4
+
 readonly BALL='⚪️'
 readonly MAX_BALL_SPEED=2
 
@@ -11,6 +14,7 @@ readonly BRICK='▟██████████▛'
 readonly BRICK_START_LINE=3
 readonly BRICK_LINES=3
 
+readonly PADDLE_COLOR=6
 readonly MAX_PADDLE_SPEED=4
 readonly PADDLE_SKEW_AREA=3
 readonly PADDLE_SAFE_AREA=1
@@ -23,13 +27,16 @@ readonly PADDLE_TYPES=(
 )
 
 readonly POWERUP_CHANCE=$((32767 / 100 * 100))
-readonly POWERUP_SLOWDOWN=3
+readonly POWERUP_SLOWDOWN=4
 readonly POWERUP_TYPES=(
-  "grow 📟"
-  "shrink 💢"
-  "life ❤️"
-  "shield 🛡"
+  'grow 📟'
+  'shrink 💢'
+  'life ❤️'
+  'shield 🛡'
 )
+
+readonly SHIELD_COLOR=5
+readonly SHIELD_TYPES=(' ' '–' '⚌' '☰' '𝌆')
 
 
 reset-game() {
@@ -59,7 +66,7 @@ reset-game() {
   brickSize=${#BRICK} 
   build-bricks
 
-  shield=
+  shields=0
 }
 
 game-mode() {
@@ -216,8 +223,8 @@ game-loop() {
 
     # Bottom collision
     elif ((nextBallY == SCREEN_HEIGHT - 1)); then
-      # Shield saves the ball, at the cost of the shield
-      if [[ $shield == 'on' ]]; then
+      # Shield saves the ball, at the cost of one shield
+      if ((shields > 0)); then
         ((ballSpeedY = -1))
         ((nextBallY = ballY + ballSpeedY))
         remove-shield
@@ -232,10 +239,10 @@ game-loop() {
   fi
 
   # Score and entities
-  draw 0 0 7 "Lives: $lives"
-  draw-right 0 7 "Score: $score"
-  draw $paddleX $paddleY 6 "$paddle"
-  draw $ballX $ballY 5 "$BALL"
+  draw 0 0 $STATUS_COLOR "Lives: $lives"
+  draw-right 0 $STATUS_COLOR "Score: $score"
+  draw $paddleX $paddleY $PADDLE_COLOR "$paddle"
+  draw $ballX $ballY 0 "$BALL"
 
   if [[ ! -z $powerupType ]]; then
     draw $powerupX $powerupY 5 "$powerup"; 
@@ -278,7 +285,7 @@ build-bricks() {
 }
 
 park-ball() {
-  draw-centered $((SCREEN_HEIGHT / 2)) 4 "PRESS <SPACE> TO LAUNCH OR CATCH"
+  draw-centered $((SCREEN_HEIGHT / 2)) $NOTICE_COLOR "PRESS <SPACE> TO LAUNCH OR CATCH"
   ballState=parked
   ballSpeedX=0
   ballSpeedY=0
@@ -301,13 +308,21 @@ add-life() {
 }
 
 add-shield() {
-  shield=on
-  draw 0 $((SCREEN_HEIGHT - 1)) 2 "$(repeat '=' "$SCREEN_WIDTH")"
+  if ((shields < ${#SHIELD_TYPES[@]} - 1)); then
+    shields=$((shields + 1))
+    draw-shield
+  fi
 }
 
 remove-shield() {
-  shield=
-  erase 0 $((SCREEN_HEIGHT - 1)) "$SCREEN_WIDTH"
+  if ((shields > 0)); then
+    shields=$((shields - 1))
+    draw-shield
+  fi
+}
+
+draw-shield() {
+  draw 0 $((SCREEN_HEIGHT - 1)) $SHIELD_COLOR "$(repeat "${SHIELD_TYPES[$shields]}" "$SCREEN_WIDTH")"
 }
 
 spawn-powerup() {
